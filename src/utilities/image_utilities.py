@@ -77,9 +77,8 @@ class ImageUtils(object):
             processed_filename = os.path.join(processed_dir, processed_shortname)
             self.save_img(img_resized, processed_filename)
 
-            # Print process progress
-            print("[{0}/{1}] Resized and saved to '{2}'...".format(
-                i+1, n_files, processed_filename))
+            # #print process progress
+            #print("[{0}/{1}] Resized and saved to '{2}'...".format(i+1, n_files, processed_filename))
 
     """
      Read a raw directory of images, and load as numpy array to memory
@@ -109,9 +108,8 @@ class ImageUtils(object):
             # Append processed image to image list
             img_list.append(img_resizednorm)
 
-            # Print process progress
-            print("[{0}/{1}] Loaded and processed '{2}'...".format(
-                i + 1, n_files, raw_filename))
+            # #print process progress
+            #print("[{0}/{1}] Loaded and processed '{2}'...".format(i + 1, n_files, raw_filename))
 
         # Convert image list to numpy array
         img_list = np.array(img_list)

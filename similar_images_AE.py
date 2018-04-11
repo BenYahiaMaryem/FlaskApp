@@ -28,10 +28,12 @@ from pymongo import MongoClient
 import base64
 import shutil
 from PIL import Image
+from os.path import basename
+import glob
 client = MongoClient('localhost:27017')
 
 mongo = client.records
-def main():
+def main(query,val):
     # ========================================
     # Set run settings
     # ========================================
@@ -80,14 +82,17 @@ def main():
     # ========================================
     # Assume project root directory to be directory of file
     project_root = os.path.dirname(__file__)
-    print("Project root: {0}".format(project_root))
+    ##print("Project root: {0}".format(project_root))
 
     # Query and answer folder
     query_dir = os.path.join(project_root, 'test')
     answer_dir = os.path.join(project_root, 'output')
 
+    
+    
+      
     # In database folder
-    db_dir = os.path.join(project_root, 'db')
+    db_dir = os.path.join(project_root, val+'/'+query['product_occasion']+'/'+query['type'])
     img_train_raw_dir = os.path.join(db_dir)
     img_inventory_raw_dir = os.path.join(db_dir)
     img_train_dir = os.path.join(db_dir)
@@ -155,7 +160,7 @@ def main():
 
     if train_autoencoder:
 
-        print("Training the autoencoder...")
+        ##print("Training the autoencoder...")
 
         # Generate naming conventions
         dictfn = MODEL.generate_naming_conventions(model_name, models_dir)
@@ -164,23 +169,23 @@ def main():
         # Load training images to memory (resizes when necessary)
         x_data_all, all_filenames = \
             IU.raw2resizednorm_load(raw_dir=img_train_dir, img_shape=img_shape)
-        print("\nAll data:")
-        print(" x_data_all.shape = {0}\n".format(x_data_all.shape))
+        ##print("\nAll data:")
+        ##print(" x_data_all.shape = {0}\n".format(x_data_all.shape))
 
         # Split images to training and validation set
         x_data_train, x_data_test, index_train, index_test = \
             IU.split_train_test(x_data_all, ratio_train_test, seed)
-        print("\nSplit data:")
-        print("x_data_train.shape = {0}".format(x_data_train.shape))
-        print("x_data_test.shape = {0}\n".format(x_data_test.shape))
+        ##print("\nSplit data:")
+        ##print("x_data_train.shape = {0}".format(x_data_train.shape))
+        ##print("x_data_test.shape = {0}\n".format(x_data_test.shape))
 
         # Flatten data if necessary
         if flatten_before_encode:
             x_data_train = IU.flatten_img_data(x_data_train)
             x_data_test = IU.flatten_img_data(x_data_test)
-            print("\nFlattened data:")
-            print("x_data_train.shape = {0}".format(x_data_train.shape))
-            print("x_data_test.shape = {0}\n".format(x_data_test.shape))
+            ##print("\nFlattened data:")
+            ##print("x_data_train.shape = {0}".format(x_data_train.shape))
+            ##print("x_data_test.shape = {0}\n".format(x_data_test.shape))
 
         # Set up architecture and compile model
         MODEL.set_arch(input_shape=x_data_train.shape[1:],
@@ -228,15 +233,15 @@ def main():
     # Load inventory images to memory (resizes when necessary)
     x_data_inventory, inventory_filenames = \
         IU.raw2resizednorm_load(raw_dir=img_inventory_dir, img_shape=img_shape)
-    print("\nx_data_inventory.shape = {0}\n".format(x_data_inventory.shape))
-    #print(inventory_filenames)
+    ##print("\nx_data_inventory.shape = {0}\n".format(x_data_inventory.shape))
+    ###print(inventory_filenames)
     
     # Explictly assign loaded encoder
     encoder = MODEL.encoder
 
     # Encode our data, then flatten to encoding dimensions
     # We switch names for simplicity: inventory -> train, query -> test
-    print("Encoding data and flatten its encoding dimensions...")
+    ##print("Encoding data and flatten its encoding dimensions...")
     if flatten_before_encode:  # Flatten the data before encoder prediction
         x_data_inventory = IU.flatten_img_data(x_data_inventory)
 
@@ -245,13 +250,13 @@ def main():
     if flatten_after_encode:  # Flatten the data after encoder prediction
         x_train_kNN = IU.flatten_img_data(x_train_kNN)
 
-    print("\nx_train_kNN.shape = {0}\n".format(x_train_kNN.shape))
+    ##print("\nx_train_kNN.shape = {0}\n".format(x_train_kNN.shape))
 
 
     # =================================
     # Train kNN model
     # =================================
-    print("Performing kNN to locate nearby items to user centroid points...")
+    ##print("Performing kNN to locate nearby items to user centroid points...")
     EMB = KNearestNeighbours()  # initialize embedding kNN class
     EMB.compile(n_neighbors=n_neighbors, algorithm=algorithm, metric=metric)  # compile kNN model
     EMB.fit(x_train_kNN)  # fit kNN
@@ -262,14 +267,14 @@ def main():
     # =================================
 
     # Read items in query folder
-    print("Reading query images from query folder: {0}".format(query_dir))
+    ##print("Reading query images from query folder: {0}".format(query_dir))
 
     # Load query images to memory (resizes when necessary)
     x_data_query, query_filenames = \
         IU.raw2resizednorm_load(raw_dir=query_dir,
                                 img_shape=img_shape)
     n_query = len(x_data_query)
-    print("\nx_data_query.shape = {0}\n".format(x_data_query.shape))
+    ##print("\nx_data_query.shape = {0}\n".format(x_data_query.shape))
 
     # Encode query images
     if flatten_before_encode:  # Flatten the data before encoder prediction
@@ -285,7 +290,7 @@ def main():
         query_filename = query_filenames[ind_query]
 
         name, tag = IU.extract_name_tag(query_filename)  # extract name and tag
-        print("({0}/{1}) Performing kNN on query '{2}'...".format(ind_query+1, n_query, name))
+        ##print("({0}/{1}) Performing kNN on query '{2}'...".format(ind_query+1, n_query, name))
 
         if flatten_after_encode:  # Flatten the data after encoder prediction
             x_test_kNN = IU.flatten_img_data(x_test_kNN)
@@ -304,8 +309,8 @@ def main():
 
             # Find k nearest neighbours to all transactions, then flatten the distances and indices
             distances, indices = EMB.predict(x_test_kNN)
-            print("indiiices")
-            print(indices)
+            ##print("indiiices")
+            ##print(indices)
             distances = distances.flatten()
             indices = indices.flatten()
             # Pick k unique training indices which have the shortest distances any transaction point
@@ -315,9 +320,9 @@ def main():
             raise Exception("Invalid method for making recommendations")
 
 
-        print("  x_test_kNN.shape = {0}".format(x_test_kNN.shape))
-        print("  distances = {0}".format(distances))
-        print("  indices = {0}\n".format(indices))
+        ##print("  x_test_kNN.shape = {0}".format(x_test_kNN.shape))
+        ##print("  distances = {0}".format(distances))
+        ##print("  indices = {0}\n".format(indices))
 
         # =============================================
         #
@@ -326,7 +331,7 @@ def main():
         # =============================================
         if output_mode == 1:
             a=name.split("\\")
-            print(len(a))
+            ##print(len(a))
             
             name=a[len(a)-1]
             
@@ -339,7 +344,7 @@ def main():
             ''' for file in x_data_inventory[indices]:
                 
                 encoded_string =  base64.b64encode(file.read())
-               # print(encoded_string)
+               # ##print(encoded_string)
                 files_collection = mongo.files_inventory  # connect to mongodb collection
                 files_collection.insert_one({"image":encoded_string}) 
                 
@@ -354,11 +359,13 @@ def main():
 
             # Clone answer file to answer folder
             # Make k-recommendations and clone most similar inventory images to answer dir
-            print("Cloning k-recommended inventory images to answer folder '{0}'...".format(answer_dir))
+            ##print("Cloning k-recommended inventory images to answer folder '{0}'...".format(answer_dir))
+            
+           
             for i, (index, distance) in enumerate(zip(indices, distances)):
-                print("\n({0}): index = {1}".format(i, index))
-                print("({0}): distance = {1}\n".format(i, distance))
-
+                ##print("\n({0}): index = {1}".format(i, index))
+                ##print("({0}): distance = {1}\n".format(i, distance))
+                j=0
                 for k_rec, ind in enumerate(index):
 
                     # Extract inventory filename
@@ -366,19 +373,27 @@ def main():
 
                     # Extract answer filename
                     name, tag = IU.extract_name_tag(inventory_filename)
+                    
+                   
                     answer_filename = os.path.join(answer_dir, name + '.' + tag)
 
-                    print("Cloning '{0}' to answer directory...".format(inventory_filename))
+                    ##print("Cloning '{0}' to answer directory...".format(inventory_filename))
                     shutil.copy(inventory_filename, answer_dir)
                     with open(inventory_filename, "rb") as imageFile:
                         encoded_string =  base64.b64encode(imageFile.read())
-                    #print(type(encoded_string))
-                    files_collection = mongo.files_inventory  # connect to mongodb collection
-                    files_collection.insert_one({"image":encoded_string}) 
-
+                    
+                    
+                    ###print(type(encoded_string))
+                    files_collection = mongo.output  # connect to mongodb collection
+                    files_collection.update( {'_id' : query['_id']}, {'$set' :{'image'+str(j) : encoded_string,'id'+str(j): basename(name) }},upsert= True)
+                    j=j+1
+                   
+                    
+                   
         else:
             raise Exception("Invalid output mode given!")
 
+    os.remove(query_filename)
 # Driver
 if __name__ == "__main__":
-    main()
+    main(query,val)
